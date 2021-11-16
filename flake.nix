@@ -4,7 +4,7 @@
   inputs = {
     # nix-filter.url = "github:numtide/nix-filter";
     flake-utils.url = "github:numtide/flake-utils";
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-21.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
   outputs = { nixpkgs, ... }@inputs:
@@ -74,7 +74,6 @@
             # flutter-android
             android-studio
             androidPkgs.platform-tools
-            jdk11
           ];
 
           shellHook =
@@ -87,6 +86,7 @@
               LD_LIBRARY_PATH = with pkgs; [
                 atk
                 cairo
+                epoxy.out
                 gdk_pixbuf
                 glib
                 gtk3
