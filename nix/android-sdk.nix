@@ -1,11 +1,11 @@
 {
-  androidenv,
+  androidSdk,
   ...
 }:
 
-
-androidenv.composeAndroidPackages {
-  platformVersions = [ "30" ];
-  buildToolsVersions = [ "29.0.2" ];
-  abiVersions = [ "x86_64"];
-}
+androidSdk (sdkPkgs: with sdkPkgs; [
+  build-tools-29-0-2
+  cmdline-tools-latest
+  platform-tools
+  platforms-android-30
+])
