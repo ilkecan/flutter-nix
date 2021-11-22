@@ -24,6 +24,7 @@ import Types.PubSpec
 
 getHostedPackages :: PubSpec -> IO [HostedPackage]
 getHostedPackages (PubSpec pkgs) =
+  -- try parallelizing this
   mapM toHostedPackage [pkg | pkg@Hosted {} <- pkgs]
 
 toHostedPackage :: PubPackage -> IO HostedPackage

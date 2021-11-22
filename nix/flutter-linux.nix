@@ -1,4 +1,5 @@
 {
+  callPackage,
   lib,
   stdenv,
   ...
@@ -8,6 +9,7 @@
   src,
   name,
   version,
+  flutterNixLockFile ? src + "/flutter-nix-lock.json",
 }:
 
 let
@@ -30,9 +32,6 @@ in
 
 stdenv.mkDerivation {
   inherit src name version;
-  # src = ../friendly_chat;
-  # name = "friendly_chat";
-  # version = "test";
 
   CPATH = with pkgs.xlibs; makeSearchPath "include" [
     libX11.dev # X11/Xlib.h
@@ -71,7 +70,7 @@ stdenv.mkDerivation {
     xlibs.libXtst.out # xtst.pc
 
     makeWrapper
-  ] ++ (import ./pub_deps.nix pkgs);
+  ] ++ callPackage ./hosted-pub-deps.nix { inherit flutterNixLockFile; };
 
   dontUseCmakeConfigure = true;
 
