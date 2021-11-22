@@ -1,0 +1,28 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: flutter-nix
+Upstream-Contact: ilkecan <ilkecan@protonmail.com>
+Source: https://github.com/ilkecan/flutter-nix
+
+Files:
+    flake.lock
+Copyright: 2021 ilkecan <ilkecan@protonmail.com>
+License: Unlicense
+
+Files:
+    *.cabal
+    *.dhall
+    *.gitignore
+    *.md
+    *.toml
+    *.yaml
+    .editorconfig
+    .envrc
+Copyright: 2021 ilkecan <ilkecan@protonmail.com>
+License: CC-BY-SA-4.0
+
+Files:
+    *.hs
+    *.nix
+    scripts/*
+Copyright: 2021 ilkecan <ilkecan@protonmail.com>
+License: MPL-2.0

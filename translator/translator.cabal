@@ -1,0 +1,51 @@
+cabal-version:      3.0
+name:               translator
+version:            0.1.0.0
+
+synopsis:           flutter-nix translator
+description:
+  Translate the pubspec lock file to flutter-nix lock file by prefetching the
+  hosted packages and calculating their hashes.
+
+license:            MPL-2.0
+author:             ilkecan
+maintainer:         ilkecan@protonmail.com
+
+data-dir:           data
+data-files:
+  fetch-pub.nix
+
+common shared-properties
+  default-language: Haskell2010
+  build-depends:
+    base >=4.11 && <5.0,
+
+  ghc-options:
+    -fwrite-ide-info
+    -Wall
+    -Werror
+    -Wcompat
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wredundant-constraints
+
+executable translator
+  import:           shared-properties
+  hs-source-dirs:   src
+  main-is:          Main.hs
+  other-modules:
+    Cli
+    Lock
+    Paths_translator
+    Prefetch
+    Types.FlutterNixLock
+    Types.PubSpec
+  autogen-modules:
+    Paths_translator
+  build-depends:
+    aeson,
+    containers,
+    optparse-applicative,
+    process,
+    yaml,
+    extra,

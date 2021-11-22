@@ -1,0 +1,13 @@
+# https://github.com/ndmitchell/hlint
+
+- arguments: [
+    --color,
+  ]
+
+- ignore: {
+    name: Use ++,
+    within: [
+      Cli.options,
+      Cli.opts,
+    ],
+  }

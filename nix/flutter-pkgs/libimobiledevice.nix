@@ -1,5 +1,5 @@
 {
-  fetchzip ? (import <nixpkgs> {}).fetchzip,
+  fetchzip ? (import <nixpkgs> { }).fetchzip,
   ...
 }:
 

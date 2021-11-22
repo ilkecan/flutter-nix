@@ -1,13 +1,12 @@
 {
-  fetchzip ? (import <nixpkgs> {}).fetchzip,
+  callPackage ? (import <nixpkgs> { }).callPackage,
   ...
 }:
 
 let
-  fetch = name: version: hash: fetchzip {
-    name = "${name}-${version}";
-    url = "https://pub.dartlang.org/packages/${name}/versions/${version}.tar.gz";
-    sha256 = hash;
+  fetchPub = callPackage ./fetch-pub.nix { };
+  fetch = name: version: sha256: fetchPub {
+    inherit name version sha256;
   };
 in
 [

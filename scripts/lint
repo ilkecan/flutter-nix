@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+
+function main() {
+  if [ -d "$1" ]; then
+      cd "$1" || exit
+  fi
+
+  project_root="$(dirname "$(dirname "${BASH_SOURCE[0]}")")"
+
+  readarray -d '' haskell_files < <(find -L "$project_root" -name '*.hs' -not -wholename '*.direnv*' -not -wholename '*dist-newstyle*' -print0)
+  readarray -d '' nix_files < <(find -L "$project_root" -name '*.nix' -not -wholename '*.direnv*' -not -wholename '*nix/haskell/*' -print0)
+
+  # license
+  print_on_error reuse
+
+  # nix
+  print_on_error nix-linter
+  print_on_error statix
+
+  # bash
+  print_on_error shellcheck
+
+  # haskell
+  print_on_error ormolu
+
+  if [ -n "$(find . -maxdepth 1 -name '*.cabal' -print -quit)" ]; then
+    print_on_error cabal-build
+    hie_directory="./dist-newstyle"
+    # stan always uses exit status of zero right now
+    # see: https://github.com/kowainik/stan/issues/246
+    stan
+    print_on_error weeder
+  fi
+
+  print_on_error hlint
+  print_on_error scan
+}
+
+function print_on_error() {
+  tmp="$(mktemp)"
+  if "$1" &> "$tmp"; then
+    echo "$1: OK"
+  else
+    cat "$tmp"
+  fi
+  rm "$tmp"
+}
+
+function error_on_stdout() {
+  if "$@" | grep .; then
+    return 1
+  else
+    return 0
+  fi
+}
+
+function reuse() {
+  command reuse lint
+}
+
+function nix-linter() {
+  command nix-linter "${nix_files[@]}"
+}
+
+function statix() {
+  function run_statix() {
+    for file in "${nix_files[@]}"; do
+      command statix check "$file"
+    done
+  }
+
+  error_on_stdout run_statix
+}
+
+function shellcheck() {
+  command shellcheck "$project_root"/scripts/*
+}
+
+function ormolu() {
+  command ormolu --mode=inplace "${haskell_files[@]}"
+}
+
+function cabal-build() {
+  command cabal build all
+}
+
+function stan() {
+  export STAN_USE_DEFAULT_CONFIG="True"
+  command stan \
+    remove --directory="$PWD" \
+    --hiedir="$hie_directory" \
+    --short
+}
+
+function weeder() {
+  command weeder --hie-directory="$hie_directory"
+}
+
+function hlint() {
+  command hlint --threads --color --hint="$project_root/.hlint.yaml" .
+}
+
+function scan() {
+  error_on_stdout command scan \
+    --check-comments=False \
+    --check-spacing=False \
+    --join-comments=False \
+    "${haskell_files[@]}"
+}
+
+main "$@"

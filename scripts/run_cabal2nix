@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+declare -A cabal_projects=(["./translator"]="translator")
+
+project_root="$(dirname "$(dirname "${BASH_SOURCE[0]}")")"
+haskell_nix_expressions_directory="./nix/haskell/"
+
+function main() {
+  cd "$project_root/$haskell_nix_expressions_directory" || exit
+
+  for project in "${!cabal_projects[@]}"; do
+    cabal2nix "$(realpath --relative-to=. "$project_root")/$project" > "./${cabal_projects[$project]}.nix"
+  done
+}
+
+main
