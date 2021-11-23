@@ -22,7 +22,6 @@ haskellPackages.shellFor {
   ];
 
   shellHook = ''
-    export FETCH_PUB_NIX="$PWD/nix/fetch-pub.nix"
     export PATH="$PWD/scripts:$PATH"
   '';
 }

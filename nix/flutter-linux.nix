@@ -1,6 +1,7 @@
 {
   callPackage,
   lib,
+  nix-filter,
   stdenv,
   ...
 }@pkgs:
@@ -9,6 +10,7 @@
   src,
   name,
   version,
+  filterSrc ? true,
   flutterNixLockFile ? src + "/flutter-nix-lock.json",
 }:
 
@@ -17,6 +19,10 @@ let
     importJSON
     makeLibraryPath
     makeSearchPath
+  ;
+
+  inherit (nix-filter)
+    inDirectory
   ;
 
   inherit (importJSON flutterNixLockFile)
@@ -46,7 +52,21 @@ let
 in
 
 stdenv.mkDerivation {
-  inherit src name version;
+  inherit name version;
+
+  src =
+    if filterSrc
+    then nix-filter {
+      root = src;
+      inherit name;
+      include = [
+        "flutter-nix-lock.json"
+        "pubspec.yaml"
+        (inDirectory "linux")
+        (inDirectory "lib")
+      ];
+    }
+    else src;
 
   CPATH = with pkgs.xlibs; makeSearchPath "include" [
     libX11.dev # X11/Xlib.h

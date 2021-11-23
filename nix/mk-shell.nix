@@ -71,6 +71,7 @@ mkShell (args // {
     export CPATH="${makeSearchPath "include" CPATH}"
     export LD_LIBRARY_PATH="${makeLibraryPath LD_LIBRARY_PATH}"
 
+    # TODO: check an argument before doing this
     flutter config --enable-linux-desktop > /dev/null
   '' + shellHook;
 })
