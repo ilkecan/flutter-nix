@@ -16,26 +16,48 @@
 
   outputs = { nixpkgs, ... }@inputs:
     let
+      inherit (nixpkgs.lib)
+        composeManyExtensions
+      ;
+
       inherit (inputs.flake-utils.lib)
         eachSystem
       ;
+
+      nixFilterOverlay = final: prev: {
+        nix-filter = inputs.nix-filter.lib;
+      };
 
       supportedSystems = [
         "x86_64-linux"
       ];
     in
     {
-      overlay = final: prev: {
-        buildFlutterApp = import ./nix/flutter-linux.nix final;
-      };
+      inherit supportedSystems;
+
+      overlay = composeManyExtensions [
+        (final: prev:
+          let
+            pkgs = final.appendOverlays [
+              inputs.android-nixpkgs.overlay
+              nixFilterOverlay
+            ];
+          in
+          {
+            flutter-nix = {
+              mkShell = import ./nix/mk-shell.nix pkgs;
+              buildFlutterApp = import ./nix/flutter-linux.nix pkgs;
+            };
+          }
+        )
+      ];
     } // eachSystem supportedSystems (system:
       let
         pkgs = import nixpkgs {
           inherit system;
           overlays = [
-            inputs.android-nixpkgs.overlay
             (import ./nix/haskell.nix)
-            (final: prev: { nix-filter = inputs.nix-filter.lib; })
+            nixFilterOverlay
           ];
         };
 
@@ -54,7 +76,7 @@
         };
         defaultPackage = packages.translator;
 
-        devShell = import ./nix/devshell.nix pkgs;
+        devShell = import ./nix/dev-shell.nix pkgs;
       }
     );
 }
