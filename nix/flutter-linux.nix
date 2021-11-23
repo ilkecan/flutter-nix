@@ -14,9 +14,24 @@
 
 let
   inherit (lib)
+    importJSON
     makeLibraryPath
     makeSearchPath
   ;
+
+  inherit (importJSON flutterNixLockFile)
+    packages
+  ;
+  hostedPackages = packages.hosted;
+  sdkPackages = packages.sdk;
+
+  hostedPubDeps = callPackage ./hosted-pub-deps.nix { inherit hostedPackages; };
+  packageConfigJson = callPackage ./package-config-json.nix {
+    inherit
+      hostedPubDeps
+      sdkPackages
+    ;
+  };
 
   material_fonts = import ./flutter-pkgs/material-fonts.nix pkgs;
   gradle_wrapper = import ./flutter-pkgs/gradle-wrapper.nix pkgs;
@@ -70,7 +85,7 @@ stdenv.mkDerivation {
     xlibs.libXtst.out # xtst.pc
 
     makeWrapper
-  ] ++ callPackage ./hosted-pub-deps.nix { inherit flutterNixLockFile; };
+  ] ++ hostedPubDeps;
 
   dontUseCmakeConfigure = true;
 
@@ -105,7 +120,7 @@ stdenv.mkDerivation {
 
     flutter config --enable-linux-desktop
 
-    install -D ./package_config.json .dart_tool/package_config.json
+    install -D ${packageConfigJson} .dart_tool/package_config.json
   '';
 
   buildPhase = ''
@@ -127,4 +142,8 @@ stdenv.mkDerivation {
 
     runHook postInstall
   '';
+
+  passthru = {
+    inherit packageConfigJson;
+  };
 }

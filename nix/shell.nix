@@ -1,4 +1,5 @@
 {
+  callPackage,
   lib,
   mkShell,
   ...
@@ -10,7 +11,7 @@ let
     makeSearchPath
   ;
 
-  androidSdk = import ./android-sdk.nix pkgs;
+  androidSdk = callPackage ./android-sdk.nix { };
 
   CPATH = with pkgs.xlibs; [
     libX11.dev # X11/Xlib.h
@@ -30,8 +31,8 @@ let
 in
 mkShell {
   packages = with pkgs; [
-    dart
     flutter
+    flutter.dart
 
     # flutter-linux
     at_spi2_core.dev # atspi-2.pc

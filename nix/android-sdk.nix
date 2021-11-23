@@ -1,6 +1,5 @@
 {
   androidSdk,
-  ...
 }:
 
 androidSdk (sdkPkgs: with sdkPkgs; [
