@@ -7,6 +7,12 @@ let
     readDir
   ;
 
+  inherit (lib)
+    composeManyExtensions
+    fold
+    mapAttrs'
+  ;
+
   inherit (final)
     lib
     nix-filter
@@ -14,14 +20,15 @@ let
     symlinkJoin
   ;
 
-  inherit (lib)
-    mapAttrs'
-    fold
-    composeExtensions
-  ;
-
   inherit (nix-filter)
     inDirectory
+  ;
+
+  inherit (final.haskell.lib)
+    doJailbreak
+    dontCheck
+    dontHaddock
+    packagesFromDirectory
   ;
 
   # Disable tests for these packages
@@ -46,8 +53,6 @@ let
       };
     in
     listToAttrs (map toPackage names);
-
-  composeExtensionsList = fold composeExtensions (_: _: { });
 
   # More exotic overrides go here
   manualOverrides = haskellPackagesFinal: haskellPackagesPrev: with final.haskell.lib; {
@@ -74,7 +79,7 @@ let
 in
 {
   haskellPackages = prev.haskellPackages.override {
-    overrides = with final.haskell.lib; composeExtensionsList [
+    overrides = composeManyExtensions [
       (packagesFromDirectory { directory = ./haskell; })
       (makeOverrides dontCheck dontCheckPackages)
       (makeOverrides doJailbreak doJailbreakPackages)
