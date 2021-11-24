@@ -5,6 +5,20 @@ module Cli
 where
 
 import Options.Applicative
+  ( Parser,
+    ParserInfo,
+    fullDesc,
+    header,
+    help,
+    helper,
+    info,
+    long,
+    metavar,
+    progDesc,
+    short,
+    strOption,
+    value,
+  )
 
 data Options = Options
   { _pubspecLockFile :: !String,
@@ -46,8 +60,15 @@ opts =
     ( fullDesc
         <> progDesc
           ( concat
-              [ "Translate the pubspec lock file to flutter-nix lock file by ",
-                "prefetching the hosted packages and calculating their hashes."
+              [ "Creates a flutter-nix lock file by prefetching the hosted ",
+                "Pub packages and Flutter SDK dependencies and calculating ",
+                "their hashes.\n",
+                "Uses the pubspec lock file to calculate the URL of the Pub ",
+                "packages and a file in JSON format to calculate the URLs of ",
+                "the Flutter SDK dependencies.\n",
+                "The pubspec lock file is passed with a command-line argument ",
+                "while the JSON file is passed with ",
+                "`FLUTTER_SDK_DEPENDENCIES_JSON` environment variable."
               ]
           )
         <> header "flutter-nix translator"

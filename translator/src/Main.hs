@@ -5,11 +5,13 @@ import Cli
     opts,
   )
 import Lock
-  ( lock,
+  ( generateLockFile,
   )
 import Options.Applicative
+  ( execParser,
+  )
 
 main :: IO ()
 main = do
   Options pubspecLockFile flutterNixLockFile <- execParser opts
-  lock pubspecLockFile flutterNixLockFile
+  generateLockFile pubspecLockFile flutterNixLockFile

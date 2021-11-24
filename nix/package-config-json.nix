@@ -36,7 +36,7 @@ let
       languageVersion = majorMinor dart.version;
     };
 
-  sdkConfig = { name }:
+  sdkConfig = name:
     toJSON {
       inherit name;
       rootUri = "file://${flutter.unwrapped}/${sdkConfigSuffix name}";

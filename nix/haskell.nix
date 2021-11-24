@@ -44,18 +44,17 @@ let
   dontHaddockPackages = [
   ];
 
-  makeOverrides = function: names: haskellPackagesFinal: haskellPackagesPrev:
+  makeOverrides = function: names: haskellPackagesFinal: _:
     let
       toPackage = name: {
         inherit name;
-
-        value = function haskellPackagesPrev.${name};
+        value = function haskellPackagesFinal.${name};
       };
     in
     listToAttrs (map toPackage names);
 
   # More exotic overrides go here
-  manualOverrides = haskellPackagesFinal: haskellPackagesPrev: with final.haskell.lib; {
+  manualOverrides = _: haskellPackagesPrev: with final.haskell.lib; {
     translator = overrideCabal haskellPackagesPrev.translator {
       src = symlinkJoin {
         name = "translator";

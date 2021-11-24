@@ -2,6 +2,7 @@
   callPackage,
   lib,
   mkShell,
+  flutter-nix,
   ...
 }@pkgs:
 
@@ -70,6 +71,7 @@ mkShell (args // {
     export CHROME_EXECUTABLE="${pkgs.chromium}/bin/chromium"
     export CPATH="${makeSearchPath "include" CPATH}"
     export LD_LIBRARY_PATH="${makeLibraryPath LD_LIBRARY_PATH}"
+    export FLUTTER_SDK_DEPENDENCIES_JSON=${flutter-nix.sdk-dependencies}
 
     # TODO: check an argument before doing this
     flutter config --enable-linux-desktop > /dev/null

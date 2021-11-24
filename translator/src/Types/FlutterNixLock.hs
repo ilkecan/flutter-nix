@@ -13,11 +13,11 @@ import Data.Aeson
   ( ToJSON,
     defaultOptions,
     genericToEncoding,
-    genericToJSON,
     object,
     pairs,
     toEncoding,
     toJSON,
+    unwrapUnaryRecords,
     (.=),
   )
 import Data.Aeson.Encoding
@@ -26,16 +26,39 @@ import Data.Aeson.Encoding
 import GHC.Generics
   ( Generic,
   )
+import Types.SdkDependency
+  ( SdkDependency,
+  )
 
 data FlutterNixLock = FlutterNixLock
-  { hosted :: ![HostedPackage],
-    sdk :: ![SdkPackage]
+  { hostedPackages :: ![HostedPackage],
+    sdkPackages :: ![SdkPackage],
+    sdkDependencies :: ![SdkDependency]
   }
-  deriving (Show, Generic)
+  deriving (Show)
 
 instance ToJSON FlutterNixLock where
-  toJSON v = object ["packages" .= genericToJSON defaultOptions v]
-  toEncoding = pairs . pair "packages" . genericToEncoding defaultOptions
+  toJSON (FlutterNixLock hostedPkgs sdkPkgs sdkDeps) =
+    object
+      [ "pubPackages"
+          .= object
+            [ "hosted" .= hostedPkgs,
+              "sdk" .= sdkPkgs
+            ],
+        "sdkDependencies" .= sdkDeps
+      ]
+
+  toEncoding (FlutterNixLock hostedPkgs sdkPkgs sdkDeps) =
+    pairs
+      ( pair
+          "pubPackages"
+          ( pairs
+              ( "hosted" .= hostedPkgs
+                  <> "sdk" .= sdkPkgs
+              )
+          )
+          <> "sdkDependencies" .= sdkDeps
+      )
 
 data HostedPackage = HostedPackage
   { name :: !String,
@@ -54,4 +77,4 @@ newtype SdkPackage = SdkPackage
   deriving (Show, Generic)
 
 instance ToJSON SdkPackage where
-  toEncoding = genericToEncoding defaultOptions
+  toEncoding = genericToEncoding $ defaultOptions {unwrapUnaryRecords = True}

@@ -1,5 +1,6 @@
 {
   haskellPackages,
+  flutter-nix,
   ...
 }@pkgs:
 
@@ -23,5 +24,6 @@ haskellPackages.shellFor {
 
   shellHook = ''
     export PATH="$PWD/scripts:$PATH"
+    export FLUTTER_SDK_DEPENDENCIES_JSON=${flutter-nix.sdk-dependencies}
   '';
 }

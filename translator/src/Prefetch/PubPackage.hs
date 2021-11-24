@@ -1,5 +1,5 @@
-module Prefetch
-  ( prefetch,
+module Prefetch.PubPackage
+  ( prefetchPubPackage,
   )
 where
 
@@ -13,14 +13,13 @@ import System.Process
   ( readProcess,
   )
 
-prefetch :: String -> String -> String -> IO String
-prefetch name version url = do
+prefetchPubPackage :: String -> String -> String -> IO String
+prefetchPubPackage name version url = do
   fetcherFile <- getDataFileName "fetch-pub.nix"
-  print fetcherFile
   stdout <-
     readProcess
       "nix-prefetch"
-      [ "-f",
+      [ "--file",
         fetcherFile,
         "--name",
         name,

@@ -4,8 +4,14 @@ version:            0.1.0.0
 
 synopsis:           flutter-nix translator
 description:
-  Translate the pubspec lock file to flutter-nix lock file by prefetching the
-  hosted packages and calculating their hashes.
+  Creates a flutter-nix lock file by prefetching the hosted Pub packages and
+  Flutter SDK dependencies and calculating their hashes.
+
+  Uses the pubspec lock file to calculate the URL of the Pub packages and a
+  file in JSON format to calculate the URLs of the Flutter SDK dependencies.
+
+  The pubspec lock file is passed with a command-line argument while the JSON
+  file is passed with `FLUTTER_SDK_DEPENDENCIES_JSON` environment variable.
 
 license:            MPL-2.0
 author:             ilkecan
@@ -37,15 +43,19 @@ executable translator
     Cli
     Lock
     Paths_translator
-    Prefetch
+    Prefetch.SdkDependency
+    Prefetch.PubPackage
     Types.FlutterNixLock
     Types.PubSpec
+    Types.SdkDependency
   autogen-modules:
     Paths_translator
   build-depends:
     aeson,
     containers,
+    extra,
     optparse-applicative,
     process,
+    text,
+    transformers,
     yaml,
-    extra,

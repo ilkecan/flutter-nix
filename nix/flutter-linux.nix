@@ -1,5 +1,6 @@
 {
   callPackage,
+  fetchzip,
   lib,
   nix-filter,
   stdenv,
@@ -15,6 +16,10 @@
 }:
 
 let
+  inherit (builtins)
+    mapAttrs
+  ;
+
   inherit (lib)
     importJSON
     makeLibraryPath
@@ -25,11 +30,14 @@ let
     inDirectory
   ;
 
-  inherit (importJSON flutterNixLockFile)
-    packages
+  flutterNixLock = importJSON flutterNixLockFile;
+  inherit (flutterNixLock)
+    pubPackages
   ;
-  hostedPackages = packages.hosted;
-  sdkPackages = packages.sdk;
+
+  hostedPackages = pubPackages.hosted;
+  sdkPackages = pubPackages.sdk;
+  sdkDependencies = mapAttrs (_: fetchzip) flutterNixLock.sdkDependencies;
 
   hostedPubDeps = callPackage ./hosted-pub-deps.nix { inherit hostedPackages; };
   packageConfigJson = callPackage ./package-config-json.nix {
@@ -39,16 +47,24 @@ let
     ;
   };
 
-  material_fonts = import ./flutter-pkgs/material-fonts.nix pkgs;
-  gradle_wrapper = import ./flutter-pkgs/gradle-wrapper.nix pkgs;
-  sky_engine = import ./flutter-pkgs/sky_engine.nix pkgs;
-  flutter_patched_sdk = import ./flutter-pkgs/flutter_patched_sdk.nix pkgs;
-  flutter_patched_sdk_product = import ./flutter-pkgs/flutter_patched_sdk_product.nix pkgs;
-  linux-x64_tools = import ./flutter-pkgs/linux-x64-tools.nix pkgs;
-  font-subset = import ./flutter-pkgs/linux-x64-font-subset-tools.nix pkgs;
-  linux-sdk = import ./flutter-pkgs/linux-x64-flutter-gtk-tools.nix pkgs;
-  linux-sdk-profile = import ./flutter-pkgs/linux-x64-profile-flutter-gtk-tools.nix pkgs;
-  linux-sdk-release = import ./flutter-pkgs/linux-x64-release-flutter-gtk-tools.nix pkgs;
+  inherit (sdkDependencies)
+    flutter_patched_sdk
+    flutter_patched_sdk_product
+    gradle_wrapper
+    linux-x64-artifacts
+    linux-x64-font-subset
+    linux-x64-linux-x64-flutter-gtk
+    linux-x64-profile-linux-x64-flutter-gtk
+    linux-x64-release-linux-x64-flutter-gtk
+    material_fonts
+    sky_engine
+  ;
+
+  createCacheStamp = { name, from ? name }: ''
+    ln -s \
+      "${pkgs.flutter.unwrapped}/bin/internal/${from}.version" \
+      "${name}.stamp"
+  '';
 in
 
 stdenv.mkDerivation {
@@ -62,8 +78,8 @@ stdenv.mkDerivation {
       include = [
         "flutter-nix-lock.json"
         "pubspec.yaml"
-        (inDirectory "linux")
         (inDirectory "lib")
+        (inDirectory "linux")
       ];
     }
     else src;
@@ -83,6 +99,7 @@ stdenv.mkDerivation {
     gnome2.pango.out
     harfbuzz.out
   ];
+
   nativeBuildInputs = with pkgs; [
     flutter
 
@@ -117,28 +134,29 @@ stdenv.mkDerivation {
     pushd "$HOME/.cache/flutter"
 
     ln -s ${material_fonts} artifacts/material_fonts
-    echo ${material_fonts.stamp} > material_fonts.stamp
 
     ln -s ${gradle_wrapper} artifacts/gradle_wrapper
-    echo ${gradle_wrapper.stamp} > gradle_wrapper.stamp
 
     ln -s ${sky_engine} pkg/sky_engine
     ln -s ${flutter_patched_sdk} artifacts/engine/common/flutter_patched_sdk
     ln -s ${flutter_patched_sdk_product} artifacts/engine/common/flutter_patched_sdk_product
-    ln -s ${linux-x64_tools}/* artifacts/engine/linux-x64
-    echo ${flutter_patched_sdk.stamp} > flutter_sdk.stamp
+    ln -s ${linux-x64-artifacts}/* artifacts/engine/linux-x64
 
-    ln -s ${font-subset}/* artifacts/engine/linux-x64
-    echo ${font-subset.stamp} > font-subset.stamp
+    ln -s ${linux-x64-font-subset}/* artifacts/engine/linux-x64
 
-    ln -s ${linux-sdk}/* artifacts/engine/linux-x64
-    ln -s ${linux-sdk-profile} artifacts/engine/linux-x64-profile
-    ln -s ${linux-sdk-release} artifacts/engine/linux-x64-release
-    echo ${linux-sdk.stamp} > linux-sdk.stamp
+    ln -s ${linux-x64-linux-x64-flutter-gtk}/* artifacts/engine/linux-x64
+    ln -s ${linux-x64-profile-linux-x64-flutter-gtk} artifacts/engine/linux-x64-profile
+    ln -s ${linux-x64-release-linux-x64-flutter-gtk} artifacts/engine/linux-x64-release
+
+    ${createCacheStamp { name = "flutter_sdk"; from = "engine"; }}
+    ${createCacheStamp { name = "font-subset"; from = "engine"; }}
+    ${createCacheStamp { name = "gradle_wrapper"; }}
+    ${createCacheStamp { name = "linux-sdk"; from = "engine"; }}
+    ${createCacheStamp { name = "material_fonts"; }}
 
     popd
 
-    flutter config --enable-linux-desktop
+    flutter config --enable-linux-desktop > /dev/null
 
     install -D ${packageConfigJson} .dart_tool/package_config.json
   '';
@@ -164,6 +182,10 @@ stdenv.mkDerivation {
   '';
 
   passthru = {
-    inherit packageConfigJson;
+    inherit
+      hostedPubDeps
+      packageConfigJson
+      sdkDependencies
+    ;
   };
 }
