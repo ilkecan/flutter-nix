@@ -6,7 +6,7 @@ where
 import Data.List.Extra
   ( dropEnd,
   )
-import Paths_translator
+import Paths_flutter_nix_translator
   ( getDataFileName,
   )
 import System.Process

@@ -1,8 +1,8 @@
 {
   flutter,
-  hostedPubDeps,
   lib,
-  sdkPackages,
+  hostedPubPackageDrvs,
+  sdkPubPackages,
   writeText,
 }:
 
@@ -55,8 +55,8 @@ let
     {
       "configVersion": 2,
       "packages": [
-        ${concatMapStringsSep "," hostedConfig hostedPubDeps},
-        ${concatMapStringsSep "," sdkConfig sdkPackages}
+        ${concatMapStringsSep "," hostedConfig hostedPubPackageDrvs},
+        ${concatMapStringsSep "," sdkConfig sdkPubPackages}
       ],
       "generated": "2021-11-17T00:19:07.676332Z",
       "generator": "pub",

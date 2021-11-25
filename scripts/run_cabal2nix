@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-declare -A cabal_projects=(["./translator"]="translator")
+declare -A cabal_projects=(["./translator"]="flutter-nix-translator")
 
 project_root="$(dirname "$(dirname "${BASH_SOURCE[0]}")")"
-haskell_nix_expressions_directory="./nix/haskell/"
+haskell_nix_expressions_directory="./nix/haskell/generated"
 
 function main() {
   cd "$project_root/$haskell_nix_expressions_directory" || exit

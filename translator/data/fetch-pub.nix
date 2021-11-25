@@ -1,1 +1,1 @@
-../../nix/fetch-pub.nix
+../../nix/flutter/fetch-pub.nix

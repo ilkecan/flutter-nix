@@ -1,5 +1,5 @@
 cabal-version:      3.0
-name:               translator
+name:               flutter-nix-translator
 version:            0.1.0.0
 
 synopsis:           flutter-nix translator
@@ -42,14 +42,14 @@ executable translator
   other-modules:
     Cli
     Lock
-    Paths_translator
+    Paths_flutter_nix_translator
     Prefetch.SdkDependency
     Prefetch.PubPackage
     Types.FlutterNixLock
     Types.PubSpec
     Types.SdkDependency
   autogen-modules:
-    Paths_translator
+    Paths_flutter_nix_translator
   build-depends:
     aeson,
     containers,

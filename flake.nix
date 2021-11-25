@@ -1,5 +1,5 @@
 {
-  description = "flutter";
+  description = "flutter-nix";
 
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
@@ -16,17 +16,9 @@
 
   outputs = { self, nixpkgs, ... }@inputs:
     let
-      inherit (nixpkgs.lib)
-        composeManyExtensions
-      ;
-
       inherit (inputs.flake-utils.lib)
         eachSystem
       ;
-
-      nixFilterOverlay = _: _: {
-        nix-filter = inputs.nix-filter.lib;
-      };
 
       supportedSystems = [
         "x86_64-linux"
@@ -35,57 +27,50 @@
     {
       inherit supportedSystems;
 
-      overlay = composeManyExtensions [
-        (final: _:
-          let
-            pkgs = final.appendOverlays [
-              inputs.android-nixpkgs.overlay
-              nixFilterOverlay
-            ];
+      overlay = final: prev:
+        let
+          pkgs = final.appendOverlays [
+            (_: _: { nix-filter = inputs.nix-filter.lib; })
+            (import ./nix/haskell)
+            inputs.android-nixpkgs.overlay
+          ];
 
-            inherit (pkgs)
-              callPackage
-            ;
-          in
-          {
-            flutter-nix = {
-              mkShell = import ./nix/mk-shell.nix pkgs;
-              buildFlutterApp = import ./nix/flutter-linux.nix pkgs;
-              sdk-dependencies =
-                callPackage ./nix/flutter-sdk-dependencies.nix { };
-            };
-          }
-        )
-      ];
+          inherit (pkgs)
+            callPackage
+            haskellPackages
+          ;
+        in
+        {
+          flutter-nix = {
+            buildFlutterApp = callPackage ./nix/flutter/build-flutter-app.nix { };
+            mkShell = callPackage ./nix/flutter/mk-shell.nix { };
+            sdk-dependencies = callPackage ./nix/flutter/sdk-dependencies.nix { };
+            translator = haskellPackages.flutter-nix-translator;
+          };
+        };
     } // eachSystem supportedSystems (system:
       let
         pkgs = import nixpkgs {
           inherit system;
           overlays = [
-            (import ./nix/haskell.nix)
-            nixFilterOverlay
             self.overlay
           ];
         };
 
         inherit (pkgs)
-          haskellPackages
-          nix-prefetch
-          writeShellScriptBin
+          callPackage
           flutter-nix
         ;
       in
       rec {
         packages = {
-          translator = writeShellScriptBin "translator" ''
-            export FLUTTER_SDK_DEPENDENCIES_JSON=${flutter-nix.sdk-dependencies}
-            export PATH="${nix-prefetch}/bin"
-            exec ${haskellPackages.translator}/bin/translator "$@"
-          '';
+          inherit (flutter-nix)
+            translator
+          ;
         };
         defaultPackage = packages.translator;
 
-        devShell = import ./nix/dev-shell.nix pkgs;
+        devShell = callPackage ./nix/dev-shell.nix { };
       }
     );
 }

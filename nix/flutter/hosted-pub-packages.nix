@@ -1,6 +1,6 @@
 {
   callPackage,
-  hostedPackages,
+  hostedPubPackages,
   lib,
   writeText,
 }:
@@ -24,11 +24,11 @@ let
     })
   '';
 
-  hostedPubDeps = writeText "hosted-pub-deps.nix" ''
+  hostedPubPackagesNix = writeText "hosted-pub-packages.nix" ''
     fetchPub:
     [
-    ${concatMapStrings fetch hostedPackages}
+    ${concatMapStrings fetch hostedPubPackages}
     ]
   '';
 in
-import hostedPubDeps fetchPub
+import hostedPubPackagesNix fetchPub

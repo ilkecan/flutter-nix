@@ -2,9 +2,9 @@
 , optparse-applicative, process, text, transformers, yaml
 }:
 mkDerivation {
-  pname = "translator";
+  pname = "flutter-nix-translator";
   version = "0.1.0.0";
-  src = ../.././translator;
+  src = ../../.././translator;
   isLibrary = false;
   isExecutable = true;
   enableSeparateDataOutput = true;

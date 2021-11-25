@@ -1,26 +1,32 @@
 {
-  haskellPackages,
   flutter-nix,
-  ...
-}@pkgs:
+  haskellPackages,
+  reuse,
+  shellcheck,
+  statix,
+}:
 
-haskellPackages.shellFor {
-  packages = p: with p; [ translator ];
-  buildInputs = with pkgs; with haskellPackages; [
+let
+  haskellTools = with haskellPackages; [
     cabal-install
     cabal2nix
     ghcid
     hlint
     nix-linter
-    nix-prefetch
     ormolu
-    reuse
     scan
-    shellcheck
     stan
-    statix
     weeder
   ];
+in
+
+haskellPackages.shellFor {
+  packages = _: [ flutter-nix.translator ];
+  buildInputs = [
+    reuse
+    shellcheck
+    statix
+  ] ++ haskellTools;
 
   shellHook = ''
     export PATH="$PWD/scripts:$PATH"

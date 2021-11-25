@@ -1,11 +1,12 @@
 {
   callPackage,
   fetchzip,
+  flutter,
   lib,
+  makeWrapper,
   nix-filter,
   stdenv,
-  ...
-}@pkgs:
+}:
 
 {
   src,
@@ -22,32 +23,26 @@ let
 
   inherit (lib)
     importJSON
-    makeLibraryPath
-    makeSearchPath
   ;
 
   inherit (nix-filter)
     inDirectory
   ;
 
-  flutterNixLock = importJSON flutterNixLockFile;
-  inherit (flutterNixLock)
+  inherit (importJSON flutterNixLockFile)
     pubPackages
+    sdkDependencies
   ;
 
-  hostedPackages = pubPackages.hosted;
-  sdkPackages = pubPackages.sdk;
-  sdkDependencies = mapAttrs (_: fetchzip) flutterNixLock.sdkDependencies;
-
-  hostedPubDeps = callPackage ./hosted-pub-deps.nix { inherit hostedPackages; };
+  hostedPubPackageDrvs =
+    callPackage ./hosted-pub-packages.nix { hostedPubPackages = pubPackages.hosted; };
   packageConfigJson = callPackage ./package-config-json.nix {
-    inherit
-      hostedPubDeps
-      sdkPackages
-    ;
+    inherit hostedPubPackageDrvs;
+    sdkPubPackages = pubPackages.sdk;
   };
+  sdkDepDrvs = mapAttrs (_: fetchzip) sdkDependencies;
 
-  inherit (sdkDependencies)
+  inherit (sdkDepDrvs)
     flutter_patched_sdk
     flutter_patched_sdk_product
     gradle_wrapper
@@ -60,9 +55,11 @@ let
     sky_engine
   ;
 
+  linux = callPackage ./platforms/linux.nix { };
+
   createCacheStamp = { name, from ? name }: ''
     ln -s \
-      "${pkgs.flutter.unwrapped}/bin/internal/${from}.version" \
+      "${flutter.unwrapped}/bin/internal/${from}.version" \
       "${name}.stamp"
   '';
 in
@@ -84,45 +81,13 @@ stdenv.mkDerivation {
     }
     else src;
 
-  CPATH = with pkgs.xlibs; makeSearchPath "include" [
-    libX11.dev # X11/Xlib.h
-    xorgproto # X11/X.h
-  ];
-
-  LD_LIBRARY_PATH = with pkgs; makeLibraryPath [
-    atk.out
-    cairo.out
-    epoxy.out
-    gdk-pixbuf.out
-    glib.out
-    gnome.gtk.out
-    gnome2.pango.out
-    harfbuzz.out
-  ];
-
-  nativeBuildInputs = with pkgs; [
+  nativeBuildInputs = [
     flutter
 
-    at_spi2_core.dev # atspi-2.pc
-    clang
-    cmake
-    dbus.dev # dbus-1.pc
-    epoxy.dev # epoxy.pc
-    gtk3.dev
-    libdatrie.dev # libdatrie.pc
-    libselinux.dev # libselinux.pc
-    libsepol.dev # libsepol.pc
-    libthai.dev # libthai.pc
-    libuuid.dev # mount.pc
-    libxkbcommon.dev # xkbcommon.pc
-    ninja
-    pcre.dev # libpcre.pc
-    pkg-config
-    xlibs.libXdmcp.dev # xdmcp.pc
-    xlibs.libXtst.out # xtst.pc
-
     makeWrapper
-  ] ++ hostedPubDeps;
+  ]
+  ++ hostedPubPackageDrvs
+  ++ linux.packages;
 
   dontUseCmakeConfigure = true;
 
@@ -156,10 +121,9 @@ stdenv.mkDerivation {
 
     popd
 
-    flutter config --enable-linux-desktop > /dev/null
-
     install -D ${packageConfigJson} .dart_tool/package_config.json
-  '';
+  ''
+  + linux.shellHook;
 
   buildPhase = ''
     runHook preBuild
@@ -183,9 +147,9 @@ stdenv.mkDerivation {
 
   passthru = {
     inherit
-      hostedPubDeps
+      hostedPubPackageDrvs
       packageConfigJson
-      sdkDependencies
+      sdkDepDrvs
     ;
   };
 }
