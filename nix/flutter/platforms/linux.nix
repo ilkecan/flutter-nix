@@ -2,6 +2,7 @@
   at_spi2_core,
   atk,
   cairo,
+  callPackage,
   clang,
   cmake,
   dbus,
@@ -27,10 +28,12 @@
 
 let
   inherit (lib)
-    concatStrings
     makeLibraryPath
     makeSearchPath
-    mapAttrsToList
+  ;
+
+  inherit (callPackage ./. {})
+    exportEnvVars
   ;
 
   envVars = {
@@ -50,10 +53,6 @@ let
       harfbuzz.out
     ];
   };
-
-  exportEnvVar = key: value: ''
-    export ${key}="${value}"
-  '';
 in
 {
   packages = [
@@ -78,5 +77,5 @@ in
 
   shellHook = ''
     flutter config --enable-linux-desktop > /dev/null
-  '' + concatStrings (mapAttrsToList exportEnvVar envVars);
+  '' + exportEnvVars envVars;
 }
