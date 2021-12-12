@@ -13,5 +13,5 @@ import Options.Applicative
 
 main :: IO ()
 main = do
-  Options pubspecLockFile flutterNixLockFile <- execParser opts
-  generateLockFile pubspecLockFile flutterNixLockFile
+  Options pubSpecFile pubSpecLockFile flutterNixLockFile <- execParser opts
+  generateLockFile pubSpecFile pubSpecLockFile flutterNixLockFile

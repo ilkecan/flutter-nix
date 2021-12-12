@@ -7,7 +7,7 @@
 
 {
   src,
-  name,
+  pname,
   version,
   nativeBuildInputs,
   preBuild,
@@ -29,7 +29,7 @@ let
 in
 
 stdenv.mkDerivation (args // {
-  inherit src name version;
+  inherit src pname version;
 
   nativeBuildInputs =
     [
@@ -69,7 +69,7 @@ stdenv.mkDerivation (args // {
     mkdir -p $out/bin/
     mv build/linux/x64/release/bundle/ $out/bundle
 
-    makeWrapper "$out/bundle/${name}" "$out/bin/${name}" \
+    makeWrapper "$out/bundle/${pname}" "$out/bin/${pname}" \
       --set LD_LIBRARY_PATH "$LD_LIBRARY_PATH"
 
     runHook postInstall

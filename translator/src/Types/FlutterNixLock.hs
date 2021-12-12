@@ -31,16 +31,20 @@ import Types.SdkDependencies
   )
 
 data FlutterNixLock = FlutterNixLock
-  { hostedPackages :: ![HostedPackage],
+  { name :: !String,
+    version :: !String,
+    hostedPackages :: ![HostedPackage],
     sdkPackages :: ![SdkPackage],
     sdkDependencies :: !SdkDependencies
   }
   deriving (Show)
 
 instance ToJSON FlutterNixLock where
-  toJSON (FlutterNixLock hostedPkgs sdkPkgs sdkDeps) =
+  toJSON (FlutterNixLock n v hostedPkgs sdkPkgs sdkDeps) =
     object
-      [ "pubPackages"
+      [ "name" .= n,
+        "version" .= v,
+        "pubPackages"
           .= object
             [ "hosted" .= hostedPkgs,
               "sdk" .= sdkPkgs
@@ -48,15 +52,17 @@ instance ToJSON FlutterNixLock where
         "sdkDependencies" .= sdkDeps
       ]
 
-  toEncoding (FlutterNixLock hostedPkgs sdkPkgs sdkDeps) =
+  toEncoding (FlutterNixLock n v hostedPkgs sdkPkgs sdkDeps) =
     pairs
-      ( pair
-          "pubPackages"
-          ( pairs
-              ( "hosted" .= hostedPkgs
-                  <> "sdk" .= sdkPkgs
-              )
-          )
+      ( "name" .= n
+          <> "version" .= v
+          <> pair
+            "pubPackages"
+            ( pairs
+                ( "hosted" .= hostedPkgs
+                    <> "sdk" .= sdkPkgs
+                )
+            )
           <> "sdkDependencies" .= sdkDeps
       )
 

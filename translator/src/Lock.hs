@@ -12,15 +12,13 @@ import Control.Monad.IO.Class
 import Control.Monad.Trans.Except
   ( ExceptT (ExceptT),
     runExceptT,
-    withExceptT,
   )
 import Data.Aeson
   ( eitherDecodeFileStrict',
     encodeFile,
   )
 import Data.Yaml
-  ( decodeFileWithWarnings,
-    prettyPrintParseException,
+  ( decodeFileThrow,
   )
 import Prefetch.PubPackage
   ( prefetchPubPackage,
@@ -37,8 +35,11 @@ import Types.FlutterNixLock
     SdkPackage (SdkPackage),
   )
 import Types.PubSpec
+  ( PubSpec (PubSpec),
+  )
+import Types.PubSpecLock
   ( PubPackage (Hosted, Sdk),
-    PubSpec (PubSpec),
+    PubSpecLock (PubSpecLock),
   )
 import Types.SdkDependencies
   ( SdkDependencies (SdkDependencies),
@@ -46,8 +47,8 @@ import Types.SdkDependencies
     hash,
   )
 
-getHostedPackages :: PubSpec -> IO [HostedPackage]
-getHostedPackages (PubSpec pkgs) =
+getHostedPackages :: PubSpecLock -> IO [HostedPackage]
+getHostedPackages (PubSpecLock pkgs) =
   mapConcurrently toHostedPackage [pkg | pkg@Hosted {} <- pkgs]
 
 toHostedPackage :: PubPackage -> IO HostedPackage
@@ -57,8 +58,8 @@ toHostedPackage (Hosted name version url) = do
   return $ HostedPackage name version url hash'
 toHostedPackage _ = error "Can't create HostedPackage from PubPackage.Sdk"
 
-getSdkPackages :: PubSpec -> [SdkPackage]
-getSdkPackages (PubSpec pkgs) = [SdkPackage name | (Sdk name) <- pkgs]
+getSdkPackages :: PubSpecLock -> [SdkPackage]
+getSdkPackages (PubSpecLock pkgs) = [SdkPackage name | (Sdk name) <- pkgs]
 
 getSdkDependencies :: SdkDependencies -> IO SdkDependencies
 getSdkDependencies (SdkDependencies common android linux web) = do
@@ -74,16 +75,14 @@ getSdkDependency dep@(SdkDependency name url stripRoot _) = do
   print hash'
   return $ dep {hash = hash'}
 
-generateLockFile :: String -> String -> IO ()
-generateLockFile pubspecLockFile flutterNixLockFile = do
+generateLockFile :: String -> String -> String -> IO ()
+generateLockFile pubSpecFile pubSpecLockFile flutterNixLockFile = do
   status <- runExceptT $ do
-    (warnings, pubspec) <-
-      withExceptT prettyPrintParseException $
-        ExceptT (decodeFileWithWarnings pubspecLockFile)
-    liftIO $ mapM_ print warnings
+    PubSpec name version <- liftIO $ decodeFileThrow pubSpecFile
+    pubSpecLock <- liftIO $ decodeFileThrow pubSpecLockFile
 
-    hostedPackages <- liftIO $ getHostedPackages pubspec
-    let sdkPackages = getSdkPackages pubspec
+    hostedPackages <- liftIO $ getHostedPackages pubSpecLock
+    let sdkPackages = getSdkPackages pubSpecLock
 
     sdkDependenciesJson <- liftIO $ getEnv "FLUTTER_SDK_DEPENDENCIES_JSON"
     sdkDependencies <- ExceptT $ eitherDecodeFileStrict' sdkDependenciesJson
@@ -91,6 +90,8 @@ generateLockFile pubspecLockFile flutterNixLockFile = do
 
     let flutter2nix =
           FlutterNixLock
+            name
+            version
             hostedPackages
             sdkPackages
             hashedSdkDependencies

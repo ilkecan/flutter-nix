@@ -6,7 +6,7 @@
 
 {
   src,
-  name,
+  pname,
   version,
   nativeBuildInputs,
   preBuild,
@@ -26,7 +26,7 @@ let
 in
 
 stdenv.mkDerivation (args // {
-  inherit src name version;
+  inherit src pname version;
 
   nativeBuildInputs =
     [ ]

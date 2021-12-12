@@ -10,12 +10,12 @@
 
 {
   src,
-  name,
-  version,
   platform,
+  name ? null,
+  version ? null,
   flutterNixLockFile ? src + "/flutter-nix-lock.json",
   filterSrc ? true,
-}:
+}@args:
 
 let
   inherit (builtins)
@@ -34,7 +34,8 @@ let
     inDirectory
   ;
 
-  inherit (importJSON flutterNixLockFile)
+  flutterNixLock = importJSON flutterNixLockFile;
+  inherit (flutterNixLock)
     pubPackages
     sdkDependencies
   ;
@@ -60,19 +61,22 @@ let
   inherit (callPackage ./lib.nix { })
     createCacheStamp
   ;
+
+  pname = args.name or flutterNixLock.name;
 in
 
 assert (assertOneOf "platform" platform flutter-nix.supportedPlatforms);
 (callPackage ./${platform}.nix {
   sdkDependencies = sdkDepDrvs.${platform};
 }) {
-  inherit name version;
+  inherit pname;
+  version = args.version or flutterNixLock.version;
 
   src =
     if filterSrc
     then nix-filter {
       root = src;
-      inherit name;
+      name = pname;
       include = [
         "flutter-nix-lock.json"
         "pubspec.yaml"

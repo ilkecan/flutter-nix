@@ -4,14 +4,16 @@ version:            0.1.0.0
 
 synopsis:           flutter-nix translator
 description:
-  Creates a flutter-nix lock file by prefetching the hosted Pub packages and
-  Flutter SDK dependencies and calculating their hashes.
+  Creates a flutter-nix lock file in JSON necessary to build the Flutter app in
+  Nix sandbox.
 
-  Uses the pubspec lock file to calculate the URL of the Pub packages and a
-  file in JSON format to calculate the URLs of the Flutter SDK dependencies.
+  Pubspec file is used to get the name and the version of the Flutter app.
+  Pubspec lock file is used to calculate the URL of the Pub packages and
+  prefetch them to calculate their hashes.
 
-  The pubspec lock file is passed with a command-line argument while the JSON
-  file is passed with `FLUTTER_SDK_DEPENDENCIES_JSON` environment variable.
+  A file in JSON format is used to calculate the URLs of the Flutter SDK
+  dependencies. This file is considered an implementation detail and passed to
+  the translator with an environment variable.
 
 license:            MPL-2.0
 author:             ilkecan
@@ -46,6 +48,7 @@ executable translator
     Prefetch.PubPackage
     Prefetch.SdkDependency
     Types.FlutterNixLock
+    Types.PubSpecLock
     Types.PubSpec
     Types.SdkDependencies
   autogen-modules:
