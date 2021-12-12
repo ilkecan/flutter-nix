@@ -30,6 +30,6 @@ haskellPackages.shellFor {
 
   shellHook = ''
     export PATH="$PWD/scripts:$PATH"
-    export FLUTTER_SDK_DEPENDENCIES_JSON=${flutter-nix.sdk-dependencies}
+    export FLUTTER_SDK_DEPENDENCIES_JSON=${flutter-nix.internal.sdk-dependencies}
   '';
 }

@@ -4,7 +4,7 @@
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    nix-filter.url = "github:numtide/nix-filter";
+    nix-filter.url = "github:ilkecan/nix-filter";
     android-nixpkgs = {
       url = "github:tadfisher/android-nixpkgs/stable";
       inputs = {
@@ -23,16 +23,32 @@
       supportedSystems = [
         "x86_64-linux"
       ];
+
+      privateOverlay = final: prev:
+        let
+          inherit (prev)
+            callPackage
+          ;
+        in
+        {
+          nix-filter = inputs.nix-filter.lib;
+          flutter-nix = prev.flutter-nix // {
+            internal = {
+              sdk-dependencies =
+                callPackage ./nix/flutter/sdk-dependencies.nix { };
+            };
+          };
+        };
     in
     {
       inherit supportedSystems;
 
       overlay = final: prev:
         let
-          pkgs = final.appendOverlays [
-            (_: _: { nix-filter = inputs.nix-filter.lib; })
+          pkgs = prev.appendOverlays [
             (import ./nix/haskell)
             inputs.android-nixpkgs.overlay
+            privateOverlay
           ];
 
           inherit (pkgs)
@@ -42,10 +58,13 @@
         in
         {
           flutter-nix = {
-            buildFlutterApp = callPackage ./nix/flutter/build-flutter-app.nix { };
+            buildFlutterApp = callPackage ./nix/flutter/build-flutter-app { };
             mkShell = callPackage ./nix/flutter/mk-shell.nix { };
-            sdk-dependencies = callPackage ./nix/flutter/sdk-dependencies.nix { };
             translator = haskellPackages.flutter-nix-translator;
+            supportedPlatforms = [
+              "linux"
+              "web"
+            ];
           };
         };
     } // eachSystem supportedSystems (system:
@@ -54,6 +73,7 @@
           inherit system;
           overlays = [
             self.overlay
+            privateOverlay
           ];
         };
 

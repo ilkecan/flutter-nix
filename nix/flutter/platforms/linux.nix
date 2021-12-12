@@ -20,6 +20,7 @@
   libthai,
   libuuid,
   libxkbcommon,
+  makeWrapper,
   ninja,
   pcre,
   pkg-config,
@@ -32,27 +33,9 @@ let
     makeSearchPath
   ;
 
-  inherit (callPackage ./. {})
+  inherit (callPackage ./lib.nix {})
     exportEnvVars
   ;
-
-  envVars = {
-    CPATH = with xlibs; makeSearchPath "include" [
-      libX11.dev # X11/Xlib.h
-      xorgproto # X11/X.h
-    ];
-
-    LD_LIBRARY_PATH = makeLibraryPath [
-      atk.out
-      cairo.out
-      epoxy.out
-      gdk-pixbuf.out
-      glib.out
-      gnome.gtk.out
-      gnome2.pango.out
-      harfbuzz.out
-    ];
-  };
 in
 {
   packages = [
@@ -75,7 +58,28 @@ in
     xlibs.libXtst.out # xtst.pc
   ];
 
-  shellHook = ''
-    flutter config --enable-linux-desktop > /dev/null
-  '' + exportEnvVars envVars;
+  shellHook =
+    ''
+      flutter config \
+        --enable-linux-desktop \
+        > /dev/null
+    ''
+    + exportEnvVars {
+      CPATH = with xlibs; makeSearchPath "include" [
+        libX11.dev # X11/Xlib.h
+        xorgproto # X11/X.h
+      ];
+
+      LD_LIBRARY_PATH = makeLibraryPath [
+        atk.out
+        cairo.out
+        epoxy.out
+        gdk-pixbuf.out
+        glib.out
+        gnome.gtk.out
+        gnome2.pango.out
+        harfbuzz.out
+      ];
+    }
+  ;
 }

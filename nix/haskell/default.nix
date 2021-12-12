@@ -8,8 +8,9 @@ let
     replaceStrings
   ;
 
-  inherit (final)
+  inherit (prev)
     callPackage
+    haskell
     lib
   ;
 
@@ -17,7 +18,7 @@ let
     composeManyExtensions
   ;
 
-  inherit (final.haskell.lib)
+  inherit (haskell.lib)
     doJailbreak
     dontCheck
     packagesFromDirectory

@@ -26,14 +26,14 @@ import Data.Aeson.Encoding
 import GHC.Generics
   ( Generic,
   )
-import Types.SdkDependency
-  ( SdkDependency,
+import Types.SdkDependencies
+  ( SdkDependencies,
   )
 
 data FlutterNixLock = FlutterNixLock
   { hostedPackages :: ![HostedPackage],
     sdkPackages :: ![SdkPackage],
-    sdkDependencies :: ![SdkDependency]
+    sdkDependencies :: !SdkDependencies
   }
   deriving (Show)
 

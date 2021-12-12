@@ -4,18 +4,22 @@
 }:
 
 let
-  inherit (callPackage ./. {})
+  inherit (callPackage ./lib.nix {})
     exportEnvVars
   ;
-
-  envVars = {
-    CHROME_EXECUTABLE = "${chromium}/bin/chromium";
-  };
 in
 {
   packages = [
-    chromium
   ];
 
-  shellHook = exportEnvVars envVars;
+  shellHook =
+    ''
+      flutter config \
+        --enable-web \
+        > /dev/null
+    ''
+    + exportEnvVars {
+      CHROME_EXECUTABLE = "${chromium}/bin/chromium";
+    }
+  ;
 }

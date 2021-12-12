@@ -19,7 +19,6 @@
 
 let
   inherit (lib)
-    optionalString
     optionals
   ;
 
@@ -28,19 +27,29 @@ let
   web = callPackage ./platforms/web.nix { };
 in
 mkShell (args // {
-  packages = [
-    flutter
-    flutter.dart
-  ] ++ packages
-    ++ optionals enableFlutterNix [ flutter-nix.translator ]
+  packages =
+    [
+      flutter
+      flutter.dart
+    ]
+    ++ packages
     ++ optionals enableLinux linux.packages
     ++ optionals enableAndroid android.packages
     ++ optionals enableWeb web.packages
+    ++ optionals enableFlutterNix [
+      flutter-nix.translator
+    ]
   ;
 
   shellHook = shellHook
-    + optionalString enableLinux linux.shellHook
-    + optionalString enableAndroid android.shellHook
-    + optionalString enableWeb web.shellHook
+    + (if enableLinux then linux.shellHook else ''
+        flutter config --no-enable-linux-desktop > /dev/null
+      '')
+    + (if enableAndroid then android.shellHook else ''
+        flutter config --no-enable-android > /dev/null
+      '')
+    + (if enableWeb then web.shellHook else ''
+        flutter config --no-enable-web > /dev/null
+      '')
   ;
 })

@@ -16,5 +16,7 @@ let
     concatStrings (mapAttrsToList exportEnvVar envVars);
 in
 {
-  inherit exportEnvVars;
+  inherit
+    exportEnvVars
+  ;
 }

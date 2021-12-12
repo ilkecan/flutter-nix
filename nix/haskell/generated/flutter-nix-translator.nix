@@ -1,4 +1,4 @@
-{ mkDerivation, aeson, base, containers, extra, lib
+{ mkDerivation, aeson, async, base, containers, extra, lib
 , optparse-applicative, process, text, transformers, yaml
 }:
 mkDerivation {
@@ -9,7 +9,7 @@ mkDerivation {
   isExecutable = true;
   enableSeparateDataOutput = true;
   executableHaskellDepends = [
-    aeson base containers extra optparse-applicative process text
+    aeson async base containers extra optparse-applicative process text
     transformers yaml
   ];
   description = "flutter-nix translator";

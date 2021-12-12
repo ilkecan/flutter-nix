@@ -1,8 +1,10 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Types.SdkDependency
-  ( SdkDependency (SdkDependency),
+module Types.SdkDependencies
+  ( SdkDependencies (SdkDependencies),
+    SdkDependency (SdkDependency),
     hash,
   )
 where
@@ -11,6 +13,21 @@ import Data.Aeson
 import Data.Text
   ( pack,
   )
+import GHC.Generics
+  ( Generic,
+  )
+
+data SdkDependencies = SdkDependencies
+  { common :: ![SdkDependency],
+    android :: ![SdkDependency],
+    linux :: ![SdkDependency],
+    web :: ![SdkDependency]
+  }
+  deriving (Show, Generic)
+
+instance ToJSON SdkDependencies
+
+instance FromJSON SdkDependencies
 
 data SdkDependency = SdkDependency
   { name :: !String,

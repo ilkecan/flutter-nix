@@ -43,15 +43,16 @@ executable translator
     Cli
     Lock
     Paths_flutter_nix_translator
-    Prefetch.SdkDependency
     Prefetch.PubPackage
+    Prefetch.SdkDependency
     Types.FlutterNixLock
     Types.PubSpec
-    Types.SdkDependency
+    Types.SdkDependencies
   autogen-modules:
     Paths_flutter_nix_translator
   build-depends:
     aeson,
+    async,
     containers,
     extra,
     optparse-applicative,

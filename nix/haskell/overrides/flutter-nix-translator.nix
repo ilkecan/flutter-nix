@@ -29,9 +29,13 @@ overrideCabal haskellPackagesPrev.flutter-nix-translator {
         include = [
           "flutter-nix-translator.cabal"
           (inDirectory "src")
+          (inDirectory "data")
+        ];
+        exclude = [
+          "data/fetch-pub.nix"
         ];
       })
-      (runCommandNoCC "fetch-pub" { } ''
+      (runCommandNoCC "fetchers" { } ''
         mkdir -p $out/data
         ln -s ${./../../flutter/fetch-pub.nix} $out/data/fetch-pub.nix
       '')
@@ -45,7 +49,7 @@ overrideCabal haskellPackagesPrev.flutter-nix-translator {
 
   postInstall = ''
     wrapProgram $out/bin/translator \
-      --set FLUTTER_SDK_DEPENDENCIES_JSON "${flutter-nix.sdk-dependencies}" \
+      --set FLUTTER_SDK_DEPENDENCIES_JSON "${flutter-nix.internal.sdk-dependencies}" \
       --set PATH "${nix-prefetch}/bin"
   '';
 }

@@ -2,8 +2,8 @@
   callPackage,
   fetchzip,
   flutter,
+  flutter-nix,
   lib,
-  makeWrapper,
   nix-filter,
   stdenv,
 }:
@@ -12,8 +12,9 @@
   src,
   name,
   version,
-  filterSrc ? true,
+  platform,
   flutterNixLockFile ? src + "/flutter-nix-lock.json",
+  filterSrc ? true,
 }:
 
 let
@@ -22,7 +23,11 @@ let
   ;
 
   inherit (lib)
+    assertOneOf
     importJSON
+    optional
+    optionalString
+    optionals
   ;
 
   inherit (nix-filter)
@@ -35,36 +40,32 @@ let
   ;
 
   hostedPubPackageDrvs =
-    callPackage ./hosted-pub-packages.nix { hostedPubPackages = pubPackages.hosted; };
-  packageConfigJson = callPackage ./package-config-json.nix {
+    callPackage ./../hosted-pub-packages.nix { hostedPubPackages = pubPackages.hosted; };
+  packageConfigJson = callPackage ./../package-config-json.nix {
     inherit hostedPubPackageDrvs;
     sdkPubPackages = pubPackages.sdk;
   };
-  sdkDepDrvs = mapAttrs (_: fetchzip) sdkDependencies;
+  sdkDepDrvs = mapAttrs (_: mapAttrs (_: fetchzip)) sdkDependencies;
 
-  inherit (sdkDepDrvs)
+  inherit (sdkDepDrvs.common)
     flutter_patched_sdk
     flutter_patched_sdk_product
     gradle_wrapper
     linux-x64-artifacts
     linux-x64-font-subset
-    linux-x64-linux-x64-flutter-gtk
-    linux-x64-profile-linux-x64-flutter-gtk
-    linux-x64-release-linux-x64-flutter-gtk
     material_fonts
     sky_engine
   ;
 
-  linux = callPackage ./platforms/linux.nix { };
-
-  createCacheStamp = { name, from ? name }: ''
-    ln -s \
-      "${flutter.unwrapped}/bin/internal/${from}.version" \
-      "${name}.stamp"
-  '';
+  inherit (callPackage ./lib.nix { })
+    createCacheStamp
+  ;
 in
 
-stdenv.mkDerivation {
+assert (assertOneOf "platform" platform flutter-nix.supportedPlatforms);
+(callPackage ./${platform}.nix {
+  sdkDependencies = sdkDepDrvs.${platform};
+}) {
   inherit name version;
 
   src =
@@ -76,22 +77,23 @@ stdenv.mkDerivation {
         "flutter-nix-lock.json"
         "pubspec.yaml"
         (inDirectory "lib")
-        (inDirectory "linux")
+        (inDirectory platform)
       ];
     }
     else src;
 
-  nativeBuildInputs = [
-    flutter
-
-    makeWrapper
-  ]
-  ++ hostedPubPackageDrvs
-  ++ linux.packages;
+  nativeBuildInputs =
+    [
+      flutter
+    ]
+    ++ hostedPubPackageDrvs
+  ;
 
   dontUseCmakeConfigure = true;
 
   preBuild = ''
+    install -D ${packageConfigJson} .dart_tool/package_config.json
+
     HOME=$(mktemp -d)
     mkdir -p "$HOME"/.cache/flutter/{artifacts,pkg}
     mkdir -p "$HOME"/.cache/flutter/artifacts/engine/{common,linux-x64}
@@ -109,47 +111,11 @@ stdenv.mkDerivation {
 
     ln -s ${linux-x64-font-subset}/* artifacts/engine/linux-x64
 
-    ln -s ${linux-x64-linux-x64-flutter-gtk}/* artifacts/engine/linux-x64
-    ln -s ${linux-x64-profile-linux-x64-flutter-gtk} artifacts/engine/linux-x64-profile
-    ln -s ${linux-x64-release-linux-x64-flutter-gtk} artifacts/engine/linux-x64-release
-
     ${createCacheStamp { name = "flutter_sdk"; from = "engine"; }}
     ${createCacheStamp { name = "font-subset"; from = "engine"; }}
     ${createCacheStamp { name = "gradle_wrapper"; }}
-    ${createCacheStamp { name = "linux-sdk"; from = "engine"; }}
     ${createCacheStamp { name = "material_fonts"; }}
 
     popd
-
-    install -D ${packageConfigJson} .dart_tool/package_config.json
-  ''
-  + linux.shellHook;
-
-  buildPhase = ''
-    runHook preBuild
-
-    flutter build linux --no-pub
-
-    runHook postBuild
   '';
-
-  installPhase = ''
-    runHook preInstall
-
-    mkdir -p $out/bin/
-    mv build/linux/x64/release/bundle/ $out/bundle
-
-    makeWrapper "$out/bundle/friendly_chat" "$out/bin/friendly_chat" \
-      --set LD_LIBRARY_PATH "$LD_LIBRARY_PATH"
-
-    runHook postInstall
-  '';
-
-  passthru = {
-    inherit
-      hostedPubPackageDrvs
-      packageConfigJson
-      sdkDepDrvs
-    ;
-  };
 }

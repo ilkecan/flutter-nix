@@ -3,6 +3,9 @@ module Lock
   )
 where
 
+import Control.Concurrent.Async
+  ( mapConcurrently,
+  )
 import Control.Monad.IO.Class
   ( liftIO,
   )
@@ -37,15 +40,15 @@ import Types.PubSpec
   ( PubPackage (Hosted, Sdk),
     PubSpec (PubSpec),
   )
-import Types.SdkDependency
-  ( SdkDependency (SdkDependency),
+import Types.SdkDependencies
+  ( SdkDependencies (SdkDependencies),
+    SdkDependency (SdkDependency),
     hash,
   )
 
 getHostedPackages :: PubSpec -> IO [HostedPackage]
 getHostedPackages (PubSpec pkgs) =
-  -- TODO: try parallelizing this
-  mapM toHostedPackage [pkg | pkg@Hosted {} <- pkgs]
+  mapConcurrently toHostedPackage [pkg | pkg@Hosted {} <- pkgs]
 
 toHostedPackage :: PubPackage -> IO HostedPackage
 toHostedPackage (Hosted name version url) = do
@@ -57,8 +60,16 @@ toHostedPackage _ = error "Can't create HostedPackage from PubPackage.Sdk"
 getSdkPackages :: PubSpec -> [SdkPackage]
 getSdkPackages (PubSpec pkgs) = [SdkPackage name | (Sdk name) <- pkgs]
 
-getSdkDependencies :: [SdkDependency] -> IO [SdkDependency]
-getSdkDependencies = mapM $ \dep@(SdkDependency name url stripRoot _) -> do
+getSdkDependencies :: SdkDependencies -> IO SdkDependencies
+getSdkDependencies (SdkDependencies common android linux web) = do
+  common' <- mapConcurrently getSdkDependency common
+  android' <- mapConcurrently getSdkDependency android
+  linux' <- mapConcurrently getSdkDependency linux
+  web' <- mapConcurrently getSdkDependency web
+  return $ SdkDependencies common' android' linux' web'
+
+getSdkDependency :: SdkDependency -> IO SdkDependency
+getSdkDependency dep@(SdkDependency name url stripRoot _) = do
   hash' <- prefetchSdkDependency name url stripRoot
   print hash'
   return $ dep {hash = hash'}
@@ -79,7 +90,10 @@ generateLockFile pubspecLockFile flutterNixLockFile = do
     hashedSdkDependencies <- liftIO $ getSdkDependencies sdkDependencies
 
     let flutter2nix =
-          FlutterNixLock hostedPackages sdkPackages hashedSdkDependencies
+          FlutterNixLock
+            hostedPackages
+            sdkPackages
+            hashedSdkDependencies
     liftIO $ encodeFile flutterNixLockFile flutter2nix
 
   case status of
