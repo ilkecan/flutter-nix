@@ -6,6 +6,10 @@ where
 import Control.Concurrent.Async
   ( mapConcurrently,
   )
+import Control.Exception
+  ( catch,
+    throwIO,
+  )
 import Control.Monad.IO.Class
   ( liftIO,
   )
@@ -41,6 +45,9 @@ import Prefetch.SdkDependency
   )
 import System.Environment
   ( getEnv,
+  )
+import System.IO.Error
+  ( isDoesNotExistError,
   )
 import Types.FlutterNixLock
   ( FlutterNixLock (FlutterNixLock),
@@ -122,23 +129,29 @@ getSdkDependency cache dep@(SdkDependency name url stripRoot _) = do
       putStrLn $ "The resource is prefetched: " ++ show pkg
       return pkg
 
-getHashCache :: String -> IO HashCache
-getHashCache file = do
-  result <- eitherDecodeFileStrict' file
+getHashCache :: Bool -> String -> IO HashCache
+getHashCache True file = do
+  putStrLn $ "The old lock file (" ++ file ++ ") won't be used as a cache."
+  return emptyHashCache
+getHashCache False file = do
+  let handleDoesNotExist e
+        | isDoesNotExistError e = return $ Left ""
+        | otherwise = throwIO e
+  result <- eitherDecodeFileStrict' file `catch` handleDoesNotExist
   case result of
     Left _ -> do
-      putStrLn $ "The old lock file (" ++ file ++ ") be used as a cache."
+      putStrLn $ "The old lock file (" ++ file ++ ") can't be used as a cache."
       return emptyHashCache
     Right hashCache -> do
       putStrLn $ "The old lock file (" ++ file ++ ") will be used as a cache."
       return hashCache
 
-generateLockFile :: String -> String -> String -> IO ()
-generateLockFile pubSpecFile pubSpecLockFile flutterNixLockFile =
+generateLockFile :: String -> String -> String -> Bool -> IO ()
+generateLockFile pubSpecFile pubSpecLockFile flutterNixLockFile noCache =
   do
     runExceptT $ do
       HashCache hostedPubPackageHashCache sdkDependencyHashCaches <-
-        liftIO $ getHashCache flutterNixLockFile
+        liftIO $ getHashCache noCache flutterNixLockFile
 
       PubSpec name version <- liftIO $ decodeFileThrow pubSpecFile
       pubSpecLock <- liftIO $ decodeFileThrow pubSpecLockFile

@@ -16,13 +16,15 @@ import Options.Applicative
     metavar,
     progDesc,
     strOption,
+    switch,
     value,
   )
 
 data Options = Options
   { _pubspecFile :: String,
     _pubspecLockFile :: String,
-    _flutterNixLockFile :: String
+    _flutterNixLockFile :: String,
+    _noCache :: Bool
   }
 
 options :: Parser Options
@@ -60,6 +62,10 @@ options =
                   "(defaults to: flutter-nix-lock.json)"
                 ]
             )
+      )
+    <*> switch
+      ( long "no-cache"
+          <> help "Don't use the old lock file as a cache"
       )
 
 opts :: ParserInfo Options
