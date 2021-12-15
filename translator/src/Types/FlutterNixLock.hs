@@ -15,6 +15,7 @@ import Data.Aeson
     Value,
     defaultOptions,
     genericToEncoding,
+    genericToJSON,
     object,
     pairs,
     parseJSON,
@@ -120,6 +121,7 @@ newtype SdkPackage = SdkPackage
 
 instance ToJSON SdkPackage where
   toEncoding = genericToEncoding $ defaultOptions {unwrapUnaryRecords = True}
+  toJSON = genericToJSON $ defaultOptions {unwrapUnaryRecords = True}
 
 instance FromJSON SdkPackage where
   parseJSON = withText "SdkPackage" $ \pkg -> do
