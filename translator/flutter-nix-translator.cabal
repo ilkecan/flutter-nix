@@ -59,7 +59,9 @@ executable translator
     Paths_flutter_nix_translator
   build-depends:
     aeson,
+    aeson-pretty,
     async,
+    bytestring,
     containers,
     extra,
     optparse-applicative,

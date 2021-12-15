@@ -15,7 +15,17 @@ import Control.Monad.Trans.Except
   )
 import Data.Aeson
   ( eitherDecodeFileStrict',
-    encodeFile,
+  )
+import Data.Aeson.Encode.Pretty
+  ( Indent (Spaces),
+    confCompare,
+    confIndent,
+    confTrailingNewline,
+    defConfig,
+    encodePretty',
+  )
+import Data.ByteString.Lazy
+  ( writeFile,
   )
 import Data.Map
   ( lookup,
@@ -58,6 +68,7 @@ import Types.SdkDependencies
   )
 import Prelude hiding
   ( lookup,
+    writeFile,
   )
 
 getHostedPackages ::
@@ -141,12 +152,20 @@ generateLockFile pubSpecFile pubSpecLockFile flutterNixLockFile =
       hashedSdkDependencies <-
         liftIO $ getSdkDependencies sdkDependencyHashCaches sdkDependencies
 
-      let flutter2nix =
+      let flutterNix =
             FlutterNixLock
               name
               version
               hostedPackages
               sdkPackages
               hashedSdkDependencies
-      liftIO $ encodeFile flutterNixLockFile flutter2nix
+          encodeConfig =
+            defConfig
+              { confCompare = compare,
+                confIndent = Spaces 2,
+                confTrailingNewline = True
+              }
+          flutterNixEncoded = encodePretty' encodeConfig flutterNix
+
+      liftIO $ writeFile flutterNixLockFile flutterNixEncoded
     >>= either print return
