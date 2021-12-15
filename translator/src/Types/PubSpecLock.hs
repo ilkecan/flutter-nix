@@ -12,11 +12,13 @@ import Data.Map
   ( Map,
     toList,
   )
-import Data.Yaml hiding
-  ( Value,
-  )
-import qualified Data.Yaml as Yaml
-  ( Value,
+import Data.Yaml
+  ( FromJSON,
+    Parser,
+    Value,
+    parseJSON,
+    withObject,
+    (.:),
   )
 
 newtype PubSpecLock = PubSpecLock
@@ -26,21 +28,21 @@ newtype PubSpecLock = PubSpecLock
 
 instance FromJSON PubSpecLock where
   parseJSON = withObject "PubSpecLock" $ \specLock -> do
-    pkgs <- specLock .: "packages" :: Parser (Map String Yaml.Value)
+    pkgs <- specLock .: "packages" :: Parser (Map String Value)
     PubSpecLock <$> mapM parsePubPackage (toList pkgs)
 
 data PubPackage
   = Hosted
-      { name :: !String,
-        version :: !String,
-        url :: !String
+      { name :: String,
+        version :: String,
+        url :: String
       }
   | Sdk
-      { name :: !String
+      { name :: String
       }
   deriving (Show)
 
-parsePubPackage :: (String, Yaml.Value) -> Parser PubPackage
+parsePubPackage :: (String, Value) -> Parser PubPackage
 parsePubPackage (key, value) =
   withObject
     "PubPackage"

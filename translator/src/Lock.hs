@@ -17,6 +17,9 @@ import Data.Aeson
   ( eitherDecodeFileStrict',
     encodeFile,
   )
+import Data.Map
+  ( lookup,
+  )
 import Data.Yaml
   ( decodeFileThrow,
   )
@@ -34,6 +37,13 @@ import Types.FlutterNixLock
     HostedPackage (HostedPackage),
     SdkPackage (SdkPackage),
   )
+import Types.HashCache
+  ( HashCache (HashCache),
+    HostedPubPackageHashCache,
+    SdkDependencyHashCache,
+    SdkDependencyHashCaches (SdkDependencyHashCaches),
+    emptyHashCache,
+  )
 import Types.PubSpec
   ( PubSpec (PubSpec),
   )
@@ -46,57 +56,97 @@ import Types.SdkDependencies
     SdkDependency (SdkDependency),
     hash,
   )
+import Prelude hiding
+  ( lookup,
+  )
 
-getHostedPackages :: PubSpecLock -> IO [HostedPackage]
-getHostedPackages (PubSpecLock pkgs) =
-  mapConcurrently toHostedPackage [pkg | pkg@Hosted {} <- pkgs]
+getHostedPackages ::
+  HostedPubPackageHashCache ->
+  PubSpecLock ->
+  IO [HostedPackage]
+getHostedPackages cache (PubSpecLock pkgs) =
+  mapConcurrently (toHostedPackage cache) [pkg | pkg@Hosted {} <- pkgs]
 
-toHostedPackage :: PubPackage -> IO HostedPackage
-toHostedPackage (Hosted name version url) = do
-  hash' <- prefetchPubPackage name version url
-  print hash'
-  return $ HostedPackage name version url hash'
-toHostedPackage _ = error "Can't create HostedPackage from PubPackage.Sdk"
+toHostedPackage :: HostedPubPackageHashCache -> PubPackage -> IO HostedPackage
+toHostedPackage cache (Hosted name version url) = do
+  case lookup (name, version, url) cache of
+    Just hash' -> do
+      let pkg = HostedPackage name version url hash'
+      putStrLn $ "The resource is found in the old lock file: " ++ show pkg
+      return pkg
+    Nothing -> do
+      hash' <- prefetchPubPackage name version url
+      let pkg = HostedPackage name version url hash'
+      putStrLn $ "The resource is prefetched: " ++ show pkg
+      return pkg
+toHostedPackage _ _ = error "Can't create HostedPackage from PubPackage.Sdk"
 
 getSdkPackages :: PubSpecLock -> [SdkPackage]
 getSdkPackages (PubSpecLock pkgs) = [SdkPackage name | (Sdk name) <- pkgs]
 
-getSdkDependencies :: SdkDependencies -> IO SdkDependencies
-getSdkDependencies (SdkDependencies common android linux web) = do
-  common' <- mapConcurrently getSdkDependency common
-  android' <- mapConcurrently getSdkDependency android
-  linux' <- mapConcurrently getSdkDependency linux
-  web' <- mapConcurrently getSdkDependency web
-  return $ SdkDependencies common' android' linux' web'
+getSdkDependencies ::
+  SdkDependencyHashCaches ->
+  SdkDependencies ->
+  IO SdkDependencies
+getSdkDependencies
+  (SdkDependencyHashCaches commonCache androidCache linuxCache webCache)
+  (SdkDependencies common android linux web) =
+    do
+      common' <- mapConcurrently (getSdkDependency commonCache) common
+      android' <- mapConcurrently (getSdkDependency androidCache) android
+      linux' <- mapConcurrently (getSdkDependency linuxCache) linux
+      web' <- mapConcurrently (getSdkDependency webCache) web
+      return $ SdkDependencies common' android' linux' web'
 
-getSdkDependency :: SdkDependency -> IO SdkDependency
-getSdkDependency dep@(SdkDependency name url stripRoot _) = do
-  hash' <- prefetchSdkDependency name url stripRoot
-  print hash'
-  return $ dep {hash = hash'}
+getSdkDependency :: SdkDependencyHashCache -> SdkDependency -> IO SdkDependency
+getSdkDependency cache dep@(SdkDependency name url stripRoot _) = do
+  case lookup url cache of
+    Just hash' -> do
+      let pkg = dep {hash = hash'}
+      putStrLn $ "The resource is found in the old lock file: " ++ show pkg
+      return pkg
+    Nothing -> do
+      hash' <- prefetchSdkDependency name url stripRoot
+      let pkg = dep {hash = hash'}
+      putStrLn $ "The resource is prefetched: " ++ show pkg
+      return pkg
+
+getHashCache :: String -> IO HashCache
+getHashCache file = do
+  result <- eitherDecodeFileStrict' file
+  case result of
+    Left _ -> do
+      putStrLn $ "The old lock file (" ++ file ++ ") be used as a cache."
+      return emptyHashCache
+    Right hashCache -> do
+      putStrLn $ "The old lock file (" ++ file ++ ") will be used as a cache."
+      return hashCache
 
 generateLockFile :: String -> String -> String -> IO ()
-generateLockFile pubSpecFile pubSpecLockFile flutterNixLockFile = do
-  status <- runExceptT $ do
-    PubSpec name version <- liftIO $ decodeFileThrow pubSpecFile
-    pubSpecLock <- liftIO $ decodeFileThrow pubSpecLockFile
+generateLockFile pubSpecFile pubSpecLockFile flutterNixLockFile =
+  do
+    runExceptT $ do
+      HashCache hostedPubPackageHashCache sdkDependencyHashCaches <-
+        liftIO $ getHashCache flutterNixLockFile
 
-    hostedPackages <- liftIO $ getHostedPackages pubSpecLock
-    let sdkPackages = getSdkPackages pubSpecLock
+      PubSpec name version <- liftIO $ decodeFileThrow pubSpecFile
+      pubSpecLock <- liftIO $ decodeFileThrow pubSpecLockFile
 
-    sdkDependenciesJson <- liftIO $ getEnv "FLUTTER_SDK_DEPENDENCIES_JSON"
-    sdkDependencies <- ExceptT $ eitherDecodeFileStrict' sdkDependenciesJson
-    hashedSdkDependencies <- liftIO $ getSdkDependencies sdkDependencies
+      hostedPackages <-
+        liftIO $ getHostedPackages hostedPubPackageHashCache pubSpecLock
+      let sdkPackages = getSdkPackages pubSpecLock
 
-    let flutter2nix =
-          FlutterNixLock
-            name
-            version
-            hostedPackages
-            sdkPackages
-            hashedSdkDependencies
-    liftIO $ encodeFile flutterNixLockFile flutter2nix
+      sdkDependenciesJson <- liftIO $ getEnv "FLUTTER_SDK_DEPENDENCIES_JSON"
+      sdkDependencies <- ExceptT $ eitherDecodeFileStrict' sdkDependenciesJson
+      hashedSdkDependencies <-
+        liftIO $ getSdkDependencies sdkDependencyHashCaches sdkDependencies
 
-  case status of
-    Left err -> print err
-    Right _ -> return ()
+      let flutter2nix =
+            FlutterNixLock
+              name
+              version
+              hostedPackages
+              sdkPackages
+              hashedSdkDependencies
+      liftIO $ encodeFile flutterNixLockFile flutter2nix
+    >>= either print return

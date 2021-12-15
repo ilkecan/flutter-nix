@@ -37,6 +37,9 @@ common shared-properties
     -Wincomplete-uni-patterns
     -Wredundant-constraints
 
+  default-extensions:
+    StrictData,
+
 executable translator
   import:           shared-properties
   hs-source-dirs:   src
@@ -48,8 +51,9 @@ executable translator
     Prefetch.PubPackage
     Prefetch.SdkDependency
     Types.FlutterNixLock
-    Types.PubSpecLock
+    Types.HashCache
     Types.PubSpec
+    Types.PubSpecLock
     Types.SdkDependencies
   autogen-modules:
     Paths_flutter_nix_translator
@@ -62,4 +66,6 @@ executable translator
     process,
     text,
     transformers,
+    unordered-containers,
+    vector,
     yaml,

@@ -8,8 +8,8 @@ where
 import Data.Yaml
 
 data PubSpec = PubSpec
-  { name :: !String,
-    version :: !String
+  { name :: String,
+    version :: String
   }
   deriving (Show)
 

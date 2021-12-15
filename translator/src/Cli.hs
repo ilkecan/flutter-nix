@@ -20,9 +20,9 @@ import Options.Applicative
   )
 
 data Options = Options
-  { _pubspecFile :: !String,
-    _pubspecLockFile :: !String,
-    _flutterNixLockFile :: !String
+  { _pubspecFile :: String,
+    _pubspecLockFile :: String,
+    _flutterNixLockFile :: String
   }
 
 options :: Parser Options

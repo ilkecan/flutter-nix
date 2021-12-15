@@ -1,5 +1,6 @@
 { mkDerivation, aeson, async, base, containers, extra, lib
-, optparse-applicative, process, text, transformers, yaml
+, optparse-applicative, process, text, transformers
+, unordered-containers, vector, yaml
 }:
 mkDerivation {
   pname = "flutter-nix-translator";
@@ -10,7 +11,7 @@ mkDerivation {
   enableSeparateDataOutput = true;
   executableHaskellDepends = [
     aeson async base containers extra optparse-applicative process text
-    transformers yaml
+    transformers unordered-containers vector yaml
   ];
   description = "flutter-nix translator";
   license = lib.licenses.mpl20;

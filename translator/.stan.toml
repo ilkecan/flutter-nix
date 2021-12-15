@@ -1,2 +1,12 @@
 ignore = [
+  # src/Types/FlutterNixLock.hs
+  { id = "OBS-STAN-0008-t5nT78-94:18" },
+  { id = "OBS-STAN-0008-t5nT78-95:15" },
+
+  # src/Types/HashCache.hs
+  { id = "OBS-STAN-0008-zAswOK-76:29" },
+  { id = "OBS-STAN-0008-zAswOK-77:33" },
+  { id = "OBS-STAN-0008-zAswOK-78:34" },
+  { id = "OBS-STAN-0008-zAswOK-79:32" },
+  { id = "OBS-STAN-0008-zAswOK-80:30" },
 ]
