@@ -1,6 +1,6 @@
 { mkDerivation, aeson, aeson-pretty, async, base, bytestring
-, containers, extra, lib, optparse-applicative, process, text
-, transformers, unordered-containers, vector, yaml
+, co-log, containers, extra, lib, optparse-applicative, process
+, text, transformers, unordered-containers, vector, yaml
 }:
 mkDerivation {
   pname = "flutter-nix-translator";
@@ -10,7 +10,7 @@ mkDerivation {
   isExecutable = true;
   enableSeparateDataOutput = true;
   executableHaskellDepends = [
-    aeson aeson-pretty async base bytestring containers extra
+    aeson aeson-pretty async base bytestring co-log containers extra
     optparse-applicative process text transformers unordered-containers
     vector yaml
   ];

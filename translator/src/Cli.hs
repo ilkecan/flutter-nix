@@ -1,12 +1,16 @@
 module Cli
-  ( Options (Options),
-    opts,
+  ( pubSpecFile,
+    pubSpecLockFile,
+    flutterNixLockFile,
+    noCache,
+    quiet,
+    verbose,
   )
 where
 
 import Options.Applicative
   ( Parser,
-    ParserInfo,
+    execParser,
     fullDesc,
     header,
     help,
@@ -15,20 +19,23 @@ import Options.Applicative
     long,
     metavar,
     progDesc,
+    short,
     strOption,
     switch,
     value,
   )
 
 data Options = Options
-  { _pubspecFile :: String,
-    _pubspecLockFile :: String,
+  { _pubSpecFile :: String,
+    _pubSpecLockFile :: String,
     _flutterNixLockFile :: String,
-    _noCache :: Bool
+    _noCache :: Bool,
+    _quiet :: Bool,
+    _verbose :: Bool
   }
 
-options :: Parser Options
-options =
+opts :: Parser Options
+opts =
   Options
     <$> strOption
       ( long "pubspec-file"
@@ -67,25 +74,54 @@ options =
       ( long "no-cache"
           <> help "Don't use the old lock file as a cache"
       )
+    <*> switch
+      ( long "quiet"
+          <> short 'q'
+          <> help "Don't print output to stdout"
+      )
+    <*> switch
+      ( long "verbose"
+          <> short 'v'
+          <> help "Print additional output to stdout"
+      )
 
-opts :: ParserInfo Options
-opts =
-  info
-    (helper <*> options)
-    ( fullDesc
-        <> progDesc
-          ( concat
-              [ "Creates a flutter-nix lock file in JSON necessary to build ",
-                "the Flutter app in Nix sandbox.\n",
-                "Pubspec file is used to get the name and the version of the ",
-                "Flutter app.\n",
-                "Pubspec lock file is used to calculate the URL of the Pub ",
-                "packages and prefetch them to calculate their hashes.\n",
-                "A file in JSON format is used to calculate the URLs of the ",
-                "Flutter SDK dependencies. This file is considered an ",
-                "implementation detail and passed to the translator with an ",
-                "environment variable."
-              ]
-          )
-        <> header "flutter-nix translator"
-    )
+options :: IO Options
+options =
+  execParser $
+    info
+      (helper <*> opts)
+      ( fullDesc
+          <> progDesc
+            ( concat
+                [ "Creates a flutter-nix lock file in JSON necessary to build ",
+                  "the Flutter app in Nix sandbox.\n",
+                  "Pubspec file is used to get the name and the version of ",
+                  "the Flutter app.\n",
+                  "Pubspec lock file is used to calculate the URL of the Pub ",
+                  "packages and prefetch them to calculate their hashes.\n",
+                  "A file in JSON format is used to calculate the URLs of the ",
+                  "Flutter SDK dependencies. This file is considered an ",
+                  "implementation detail and passed to the translator with an ",
+                  "environment variable."
+                ]
+            )
+          <> header "flutter-nix translator"
+      )
+
+pubSpecFile :: IO String
+pubSpecFile = _pubSpecFile <$> options
+
+pubSpecLockFile :: IO String
+pubSpecLockFile = _pubSpecLockFile <$> options
+
+flutterNixLockFile :: IO String
+flutterNixLockFile = _flutterNixLockFile <$> options
+
+noCache :: IO Bool
+noCache = _noCache <$> options
+
+quiet :: IO Bool
+quiet = _quiet <$> options
+
+verbose :: IO Bool
+verbose = _verbose <$> options

@@ -3,6 +3,12 @@ module Lock
   )
 where
 
+import Cli
+  ( flutterNixLockFile,
+    noCache,
+    pubSpecFile,
+    pubSpecLockFile,
+  )
 import Control.Concurrent.Async
   ( mapConcurrently,
   )
@@ -36,6 +42,11 @@ import Data.Map
   )
 import Data.Yaml
   ( decodeFileThrow,
+  )
+import Log
+  ( logDebug,
+    logError,
+    logInfo,
   )
 import Prefetch.PubPackage
   ( prefetchPubPackage,
@@ -90,12 +101,12 @@ toHostedPackage cache (Hosted name version url) = do
   case lookup (name, version, url) cache of
     Just hash' -> do
       let pkg = HostedPackage name version url hash'
-      putStrLn $ "The resource is found in the old lock file: " ++ show pkg
+      logDebug $ "The resource is found in the old lock file: " <> show pkg
       return pkg
     Nothing -> do
       hash' <- prefetchPubPackage name version url
       let pkg = HostedPackage name version url hash'
-      putStrLn $ "The resource is prefetched: " ++ show pkg
+      logDebug $ "The resource is prefetched: " <> show pkg
       return pkg
 toHostedPackage _ _ = error "Can't create HostedPackage from PubPackage.Sdk"
 
@@ -121,40 +132,46 @@ getSdkDependency cache dep@(SdkDependency name url stripRoot _) = do
   case lookup url cache of
     Just hash' -> do
       let pkg = dep {hash = hash'}
-      putStrLn $ "The resource is found in the old lock file: " ++ show pkg
+      logDebug $ "The resource is found in the old lock file: " <> show pkg
       return pkg
     Nothing -> do
       hash' <- prefetchSdkDependency name url stripRoot
       let pkg = dep {hash = hash'}
-      putStrLn $ "The resource is prefetched: " ++ show pkg
+      logDebug $ "The resource is prefetched: " <> show pkg
       return pkg
 
-getHashCache :: Bool -> String -> IO HashCache
-getHashCache True file = do
-  putStrLn $ "The old lock file (" ++ file ++ ") won't be used as a cache."
-  return emptyHashCache
-getHashCache False file = do
-  let handleDoesNotExist e
-        | isDoesNotExistError e = return $ Left ""
-        | otherwise = throwIO e
-  result <- eitherDecodeFileStrict' file `catch` handleDoesNotExist
-  case result of
-    Left _ -> do
-      putStrLn $ "The old lock file (" ++ file ++ ") can't be used as a cache."
+getHashCache :: IO HashCache
+getHashCache = do
+  noCache' <- noCache
+  file <- flutterNixLockFile
+  if noCache'
+    then do
+      logInfo $ "The old lock file (" <> file <> ") won't be used as cache."
       return emptyHashCache
-    Right hashCache -> do
-      putStrLn $ "The old lock file (" ++ file ++ ") will be used as a cache."
-      return hashCache
+    else do
+      let handleDoesNotExist e
+            | isDoesNotExistError e = return $ Left ""
+            | otherwise = throwIO e
+      result <- eitherDecodeFileStrict' file `catch` handleDoesNotExist
+      case result of
+        Left _ -> do
+          logInfo $
+            "The old lock file (" <> file <> ") can't be used as cache."
+          return emptyHashCache
+        Right hashCache -> do
+          logInfo $
+            "The old lock file (" <> file <> ") will be used as cache."
+          return hashCache
 
-generateLockFile :: String -> String -> String -> Bool -> IO ()
-generateLockFile pubSpecFile pubSpecLockFile flutterNixLockFile noCache =
+generateLockFile :: IO ()
+generateLockFile =
   do
     runExceptT $ do
       HashCache hostedPubPackageHashCache sdkDependencyHashCaches <-
-        liftIO $ getHashCache noCache flutterNixLockFile
+        liftIO getHashCache
 
-      PubSpec name version <- liftIO $ decodeFileThrow pubSpecFile
-      pubSpecLock <- liftIO $ decodeFileThrow pubSpecLockFile
+      PubSpec name version <- liftIO $ decodeFileThrow =<< pubSpecFile
+      pubSpecLock <- liftIO $ decodeFileThrow =<< pubSpecLockFile
 
       hostedPackages <-
         liftIO $ getHostedPackages hostedPubPackageHashCache pubSpecLock
@@ -180,5 +197,6 @@ generateLockFile pubSpecFile pubSpecLockFile flutterNixLockFile noCache =
               }
           flutterNixEncoded = encodePretty' encodeConfig flutterNix
 
-      liftIO $ writeFile flutterNixLockFile flutterNixEncoded
-    >>= either print return
+      flutterNixLockFile' <- liftIO flutterNixLockFile
+      liftIO $ writeFile flutterNixLockFile' flutterNixEncoded
+    >>= either logError return

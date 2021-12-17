@@ -47,6 +47,7 @@ executable translator
   other-modules:
     Cli
     Lock
+    Log
     Paths_flutter_nix_translator
     Prefetch.PubPackage
     Prefetch.SdkDependency
@@ -64,6 +65,7 @@ executable translator
     bytestring,
     containers,
     extra,
+    co-log,
     optparse-applicative,
     process,
     text,
