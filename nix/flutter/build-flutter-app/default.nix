@@ -65,7 +65,7 @@ let
   pname = args.name or flutterNixLock.name;
 in
 
-assert (assertOneOf "platform" platform flutter-nix.supportedPlatforms);
+assert assertOneOf "platform" platform flutter-nix.supportedPlatforms;
 (callPackage ./${platform}.nix {
   sdkDependencies = sdkDepDrvs.${platform};
 }) {
