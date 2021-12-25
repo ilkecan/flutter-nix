@@ -1,6 +1,7 @@
 {
   android-studio,
   callPackage,
+  sdkPlatformApiLevels,
 }:
 
 let
@@ -8,7 +9,8 @@ let
     exportEnvVars
   ;
 
-  androidSdk = callPackage ./../../android-sdk.nix { };
+  androidSdk =
+    callPackage ./../../android-sdk.nix { inherit sdkPlatformApiLevels; };
 in
 {
   packages = [

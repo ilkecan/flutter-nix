@@ -14,6 +14,7 @@
   enableLinux ? enableAll || false,
   enableAndroid ? enableAll || false,
   enableWeb ? enableAll || false,
+  androidSdkPlatformApiLevels ? [ ],
   ...
 }@args:
 
@@ -23,7 +24,9 @@ let
   ;
 
   linux = callPackage ./platforms/linux.nix { };
-  android = callPackage ./platforms/android.nix { };
+  android = callPackage ./platforms/android.nix {
+    sdkPlatformApiLevels = androidSdkPlatformApiLevels;
+  };
   web = callPackage ./platforms/web.nix { };
 in
 mkShell (args // {
